@@ -1,0 +1,14 @@
+# For ADNet
+torch==1.13.1
+torchvision==0.14.0
+opencv-python
+tb-nightly
+visdom
+scikit-image
+tikzplotlib
+gdown
+pycocotools
+lvis
+spatial-correlation-sampler
+jpeg4py 
+git+https://github.com/votchallenge/vot-toolkit-python@6f92f4cd801c668948b9064e2d5e8ee79f5c906b

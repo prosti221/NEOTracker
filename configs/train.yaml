@@ -1,0 +1,35 @@
+device: cpu
+train_mode: NE
+
+datasets:
+  train: dummy #[vot2015]
+  val: []
+  test: [] #[vot-st2019]
+
+
+train_sl:
+  initial_model_path: networks/imagenet-vgg-m.mat
+  epochs: 5
+  epoch_checkpoint: 1 
+  evaluate_performance_: False
+  experiment_name: SL
+
+train_rl:
+  initial_model_path: networks/imagenet-vgg-m.mat #SL/ # If a directory is given, the latest checkpoint is used. If a file is given, that checkpoint is used.
+  epochs: 10 
+  epoch_checkpoint: 1 
+  evaluate_performance_: False
+  single_layer: False
+  reset_fc6: False
+  experiment_name: RL 
+
+# NE
+train_ne:
+  initial_model_path: networks/adnet_checkpoints/RL/ # If a directory is given, the latest checkpoint is used. If a file is given, that checkpoint is used.
+  algorithm: FIXED
+  population_size: 5 
+  n_generations: 1
+  checkpoints: networks/adnet_checkpoints/RL # e.g. SL/ or SLRL/
+  checkpoint_num: 1 # How many checkpoints to load into the population
+  resume: False # Whether to resume from the latest checkpoint in the population
+  experiment_name: NE 
