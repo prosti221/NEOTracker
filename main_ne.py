@@ -81,13 +81,13 @@ if __name__ == '__main__':
     tracker = Tracker("adnet", "default", run_id=None)
     params = tracker.get_parameters()
     device = torch.device('cuda:0')
-    start_from = latest_checkpoint(params.checkpoints_path / "RL-XL")
+    start_from = latest_checkpoint(params.checkpoints_path / "SL-XL")
 
     #dummy_dataset = load_dummy_dataset()
     dataset = load_datasets(
-        #train_tags=["vot2014", "vot2015","vot2017","vot-st2020","lasot","got_10k-val"],
+        train_tags=["vot2014", "vot2015","vot2017","vot-st2020","lasot","got_10k-val"],
         val_tags=["vot-st2021"],
-        train_tags=["got_10k-val"],
+        #train_tags=["got_10k-val"],
         n_train_sequences=-1,
         n_val_sequences=-1,
         n_test_sequences=-1,
@@ -101,7 +101,6 @@ if __name__ == '__main__':
     #dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=0.128)  # gets us 25 samples
     print(len(dataset["train"]))
 
-    """
     stats = train_ne(
         initial_model_path = start_from,
         params = params,
@@ -144,3 +143,4 @@ if __name__ == '__main__':
     #plot_results(trackers, dummy_dataset, "NE vs SLRL - dummy dataset", merge_results=True, plot_types=('success', 'prec', 'norm_prec'), force_evaluation=True, skip_missing_seq=True)
     eval_data = print_results(trackers, dummy_dataset, "NE vs SLRL - dummy dataset", merge_results=True, plot_types=('success', 'prec', 'norm_prec'), force_evaluation=True, skip_missing_seq=True)
     print_per_sequence_results(trackers, dummy_dataset,"NE vs SLRL - dummy dataset",  merge_results=True, force_evaluation=True, skip_missing_seq=True)
+    """

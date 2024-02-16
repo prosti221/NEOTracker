@@ -18,11 +18,8 @@ class GOT10KDataset(BaseDataset):
     def __init__(self, split, path=None):
         super().__init__()
         # Split can be test, val, or ltrval (a validation split consisting of videos from the official train set)
-        if split == 'test' or split == 'val':
-            #self.base_path = os.path.join(self.env_settings.got10k_path, split)
-            self.base_path = os.path.join(path, split)
-        else:
-            self.base_path = os.path.join(self.env_settings.got10k_path, 'train')
+        #self.base_path = os.path.join(self.env_settings.got10k_path, split)
+        self.base_path = os.path.join(path, split)
 
         self.sequence_list = self._get_sequence_list(split)
         self.split = split

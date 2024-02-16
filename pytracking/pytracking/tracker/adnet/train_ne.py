@@ -282,24 +282,15 @@ class TrainTracker_NE(TrackerTrainer):
                     sim_overlaps.append(frame_overlaps)
 
                     curr_bbox = next_bbox
-                    #mean_num_actions += len(bboxes)
-                    #mean_num_actions_list.append(mean_num_actions)
 
                 sim_weights = self.calc_weights(sim_overlaps, version=self.stats['reward_version'])
                 batch_weights.append(sim_weights)
-                #mean_num_actions /= len(sequence.frames) - 1
-                #total_mean_num_actions += np.mean(mean_num_actions_list)
 
             batch_weights = torch.cat(batch_weights).to(self.device)
             total_epoch_weights += torch.mean(batch_weights)
-            #total_mean_num_actions /= len(db_idx)
         
-        #total_mean_num_actions /= len(db_idx) 
-        #total_mean_num_actions = min(total_mean_num_actions, 15) # Clip the number of actions reward to 20
-        #total_mean_num_actions /= 100
         total_epoch_weights /= len(db_idx)
 
-        #return [total_epoch_weights, total_mean_num_actions]
         return total_epoch_weights
     
 
@@ -378,8 +369,8 @@ class TrainTracker_NE(TrackerTrainer):
         self.dataset_incrementer = DatasetIncrementer.remote(len(self.train_db), self.batch_size, repeat_for=1)
 
         # Transfer FC6 weights from pre-trained model
-        #searcher = self.initialize_population(searcher, problem, self.fc6, stdev=0.001)
-        #self.visualize_population(searcher)
+        searcher = self.initialize_population(searcher, problem, self.fc6, stdev=0.001)
+        self.visualize_population(searcher)
 
         # Initialize a standard output logger, and a pandas logger
         _ = StdOutLogger(searcher, interval=1)
@@ -404,8 +395,8 @@ class TrainTracker_NE(TrackerTrainer):
                 self.evaluate(self.train_db[0], i, mode="train")
                 if self.eval_db is not None:
                     self.evaluate(self.eval_db[0], i, mode="eval")
-
             """
+
             searcher.step()
             # Code for "profiling" and generating a report
             #sample_progress = self.sample_profiling(searcher, sample_progress, self.checkpoint_path / "pytorch_checkpoints" / "sample_progress_new.txt")
