@@ -93,11 +93,20 @@ def get_reference_solution(solutions):
 
     return (key, solutions[key])
 
-def compute_distance(mat1, mat2):
+def compute_distance(mat1, mat2, metric="L1"):
     """
     Compute the mean squared error between two matrices
     """
-    return ((mat1 - mat2)**2).mean().item()
+    if metric == "L1":
+        return (mat1 - mat2).abs().mean().item()
+    if metric == "L2":
+        return ((mat1 - mat2)**2).mean().item()
+    elif metric == "dot-product":
+        d = np.dot(mat1.flatten(), mat2.flatten())
+        #d /= (np.linalg.norm(mat1) * np.linalg.norm(mat2))
+        return d
+    else:
+        raise ValueError("Invalid metric")
 
 def get_optimal_solution(candidate_solutions, included, n):
     """

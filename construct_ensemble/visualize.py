@@ -28,9 +28,11 @@ def visualize_population(solutions):
 
     mds = MDS(n_components=2, dissimilarity="precomputed")
     embedding = mds.fit_transform(distance_map)
+    # Get color based on the fitness
+    fitness = [solutions[key][1] for key in solutions.keys()]
 
     # Plot the MDS embedding
-    plt.scatter(embedding[:, 0], embedding[:, 1])
+    plt.scatter(embedding[:, 0], embedding[:, 1], c=fitness)
     plt.xlabel("mds 1")
     plt.ylabel("mds 2")
     plt.title("Parameter space embedding of all solutions")
@@ -50,8 +52,10 @@ def visualize_ensemble(solutions, ensemble_set):
     mds = MDS(n_components=2, dissimilarity="precomputed")
     embedding = mds.fit_transform(distance_map)
 
+    fitness = [solutions[key][1] for key in ensemble_set]
+
     # Plot the MDS embedding
-    plt.scatter(embedding[:, 0], embedding[:, 1])
+    plt.scatter(embedding[:, 0], embedding[:, 1], c=fitness)
     plt.xlabel("mds 1")
     plt.ylabel("mds 2")
     plt.title("Parameter space embedding of ensemble solutions")
