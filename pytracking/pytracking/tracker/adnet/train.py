@@ -201,6 +201,7 @@ def latest_checkpoint(path):
 
 class TrackerTrainer:
     def __init__(self, params, model_path=None, epoch_checkpoint=1, epochs=10, evaluate_performance_=True, experiment_name="", device="cpu"):
+        self.model_path = model_path
         self.params = params 
         self.epoch_checkpoint = epoch_checkpoint
         self.n_epochs = epochs

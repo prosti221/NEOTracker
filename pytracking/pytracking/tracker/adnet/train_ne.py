@@ -313,23 +313,23 @@ class TrainTracker_NE(TrackerTrainer):
 
         # Declare the problem
 
-        ## Single layer network
-        policy = (
-            """
-            Linear(622, 11)
-            >> Softmax(dim=1)
-            """
-        )
-        
-        # Two layer network
+        ### Single layer network
         #policy = (
         #    """
-        #    Linear(622, 256)
-        #    >> ReLU()
-        #    >> Linear(256, 11)
+        #    Linear(622, 11)
         #    >> Softmax(dim=1)
         #    """
         #)
+        #
+        ## Two layer network
+        policy = (
+            """
+            Linear(622, 512)
+            >> ReLU()
+            >> Linear(512, 11)
+            >> Softmax(dim=1)
+            """
+        )
         problem = NEProblem(
             #objective_sense=["max", "max"],
             objective_sense="max",
@@ -369,8 +369,8 @@ class TrainTracker_NE(TrackerTrainer):
         self.dataset_incrementer = DatasetIncrementer.remote(len(self.train_db), self.batch_size, repeat_for=1)
 
         # Transfer FC6 weights from pre-trained model
-        searcher = self.initialize_population(searcher, problem, self.fc6, stdev=0.001)
-        self.visualize_population(searcher)
+        #searcher = self.initialize_population(searcher, problem, self.fc6, stdev=0.001)
+        #self.visualize_population(searcher)
 
         # Initialize a standard output logger, and a pandas logger
         _ = StdOutLogger(searcher, interval=1)

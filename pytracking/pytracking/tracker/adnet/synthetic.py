@@ -125,6 +125,7 @@ class DummySequence(VOTSequence):
     # Write a version of _generate that bounce the object off the edges of the screen randomly.
 
     """
+    # Random pattern
     @staticmethod
     def _generate(base, length, size):
         background_color = Image.fromarray(np.random.normal(15, 5, (size[1], size[0], 3)).astype(np.uint8))
@@ -138,7 +139,7 @@ class DummySequence(VOTSequence):
         groundtruth = []
 
         # Set initial position and velocity
-        speed = 15 
+        speed = 60
         x = background_color.size[0] // 2
         y = background_color.size[1] // 2
         update_x = update_y = 0

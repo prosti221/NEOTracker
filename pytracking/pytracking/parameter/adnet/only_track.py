@@ -11,8 +11,8 @@ def parameters():
     params.fine_tuning = False  # Perform online fine tuning 
 
     # For running ensamble mode
-    params.ensemble_mode = False
-    params.n_heads = 999
+    params.ensemble_mode = False 
+    params.n_heads = 999 
 
     # For running EfficientNet backbone
     params.use_efficientnet = False

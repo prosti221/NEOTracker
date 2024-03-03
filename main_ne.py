@@ -65,7 +65,9 @@ def construct_ensemble_folder(src, dst, generation_start, generation_end, top_n)
     subfolders = os.listdir(src)
     subfolders.sort(key=lambda x: int(re.findall(r"\d+", x)[0]))
     for i, subfolder in enumerate(tqdm(subfolders, desc="fetching genomes from populations")):
-        if i >= generation_start and i <= generation_end:
+        gen = int(re.findall(r'\d+', subfolder)[0])
+        #if i >= generation_start and i <= generation_end:
+        if gen >= generation_start and gen <= generation_end:
             print(f"Fetching genomes from {subfolder}")
             # Get the top_n genomes
             genomes = os.listdir(os.path.join(src, subfolder))
@@ -81,24 +83,26 @@ if __name__ == '__main__':
     tracker = Tracker("adnet", "default", run_id=None)
     params = tracker.get_parameters()
     device = torch.device('cuda:0')
-    start_from = latest_checkpoint(params.checkpoints_path / "SL-XL")
+    start_from = latest_checkpoint(params.checkpoints_path / "RL-XL")
 
-    #dummy_dataset = load_dummy_dataset()
+    dummy_dataset = load_dummy_dataset()
     dataset = load_datasets(
         train_tags=["vot2014", "vot2015","vot2017","vot-st2020","lasot","got_10k-val"],
+        #train_tags=["got_10k-train"],
         val_tags=["vot-st2021"],
-        #train_tags=["got_10k-val"],
+        #val_tags=["got_10k-train"],
         n_train_sequences=-1,
         n_val_sequences=-1,
         n_test_sequences=-1,
         remove_overlapping=True
     )
 
-    dummy_dataset = dataset["train"][:50]
-    #dataset["train"] = [filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress_new.txt", cutoff=0.0309375)[0]]
-    dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=0.038) # gets us 97 samples
+    #dummy_dataset = dataset["train"][:50]
+    #dummy_dataset = dummy_dataset["train"]
+    #dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=0.038) # gets us 97 samples
     #dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=0.0125)  # gets us 150 samples
     #dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=0.128)  # gets us 25 samples
+    dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=-0.005)  # gets us 247 samples
     print(len(dataset["train"]))
 
     stats = train_ne(
@@ -107,36 +111,42 @@ if __name__ == '__main__':
         dataset_train = dataset["train"],
         dataset_eval = dataset["val"],
         population_size = 256,
-        n_generations = 4935,
+        n_generations = 5000,
         algorithm="FIXED",
         experiment_name="NE-evotorch", 
         device=device,
         checkpoints=[], # get_all_checkpoints(params.checkpoints_path / "SLRL")
         resume=False
     )
+
     """
 
     construct_ensemble_folder(
-        src=params.checkpoints_path / "NE-evotorch/pytorch_checkpoints/saved_populations",
+        src=Path(__file__).parent / "final_experiments/SLRLNE_f/models/saved_populations",
         dst=params.checkpoints_path / "ensemble",
-        generation_start=0,
-        generation_end=999,
-        top_n=30
+        generation_start=1700,
+        generation_end=3900,
+        top_n=20
     )
 
-    #p_target_rl1 = latest_checkpoint(params.checkpoints_path / "RL-XL")
+    p_target_rl1 = latest_checkpoint(params.checkpoints_path / "RL-XL")
+    #p_target_rl2 = latest_checkpoint(params.checkpoints_path / "SLRL_fc6_f")
+    #p_target_rl3 = latest_checkpoint(params.checkpoints_path / "SLRL+RL_fc6_f")
+    #p_target_ne = params.checkpoints_path / "SLNE_mk1" / "best_genome_medium.pth"
+    p_target_ne = Path(__file__).parent / "final_experiments/SLRLNE_f/models/best_genome_2522.pth"
 
-    p_target_ne = params.checkpoints_path / "NE-evotorch" / "pytorch_checkpoints/best_genome_582.pth"
-
-    N_RUNS = 1
+    N_RUNS = 10
     force = True
     trackers = []
     debug = 0 
 
     # For evaluating all the ne checkpoint.pth"
     #evaluate_all_checkpoints(params, dataset, checkpoint_path=params.checkpoints_path / "NE-evotorch" / "pytorch_checkpoints")
+    #evaluate_all_checkpoints(params, dataset, Path(__file__).parent / "final_experiments/SLNE/models")
 
-    #trackers.extend(evaluate_tracker(dummy_dataset, p_target_rl1, "SLRL1", N_RUNS, display_name="$SLRL_1$", force=force, threads=0, debug=debug))
+    #trackers.extend(evaluate_tracker(dummy_dataset, p_target_rl3, "SLRL+RL_fc6", N_RUNS, display_name="$SLRL+RL_fc6$", force=force, threads=0, debug=debug))
+    #trackers.extend(evaluate_tracker(dummy_dataset, p_target_rl2, "SLRL_fc6_f", N_RUNS, display_name="$SLRL_fc6$", force=force, threads=0, debug=debug))
+    #trackers.extend(evaluate_tracker(dummy_dataset, p_target_rl1, "SLRL", N_RUNS, display_name="$SLRL$", force=force, threads=0, debug=debug))
 
     trackers.extend(evaluate_tracker(dummy_dataset, p_target_ne, "NE_few", N_RUNS, display_name="$NE_1$", force=force, threads=0, debug=debug))
 

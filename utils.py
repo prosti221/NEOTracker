@@ -425,9 +425,9 @@ def load_datasets(train_tags,  val_tags=[], test_tags=[], n_train_sequences=-1, 
         remove_overlapping : If True, removes overlapping sequences from the datasets
     """
     VALID_DATASETS = ["vot2013", "vot2014", "vot2015", 
-                      "vot2017","got_10k-test", "got_10k-val", 
+                      "vot2017","lasot", "otb50", "otb100",
+                      "got_10k-train", "got_10k-test", "got_10k-val",
                       "vot-st2019", "vot-st2020", "vot-st2021",
-                      "lasot", "otb50", "otb100"
                     ]
     datasets = {}
     for tag in train_tags + val_tags + test_tags:
