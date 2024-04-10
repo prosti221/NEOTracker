@@ -16,6 +16,12 @@ from pytracking.tracker.adnet.synthetic import make_curriculum
 
 from utils import *
 
+wandb.init(
+    project="reference-models",
+    job_type="train",
+    group="RL",
+    name="RL-run1",
+)
 
 if __name__ == '__main__':
     tracker = Tracker("adnet", "default", run_id=None)
@@ -28,7 +34,8 @@ if __name__ == '__main__':
     dataset = load_datasets(
         #train_tags=["vot2014", "vot2015", "vot2017","vot-st2020", "lasot"],
         train_tags=["vot2014", "vot2015","vot2017","vot-st2020","lasot","got_10k-val"],
-        val_tags=["vot-st2021"],
+        #val_tags=["vot-st2021"],
+        val_tags=["got_10k-train"],
         test_tags=["got_10k-val"],
         n_train_sequences=-1,
         n_val_sequences=-1,
@@ -36,16 +43,21 @@ if __name__ == '__main__':
         remove_overlapping=True
     )
     #dataset["test"] = dataset["test"][:30] 
+    dataset["val"] = dataset["val"][:50] 
     dataset["train"] = filter_sequences(dataset["train"], report_path=Path.cwd()/"sample_progress.txt", cutoff=0.038) # gets us 97 samples
+    print(len(dataset["train"]))
+    print(len(dataset["val"]))
     """
-    trainer = TrainTracker_SL(params, model_path=model_path, epochs=45, epoch_checkpoint=1, evaluate_performance_=False, experiment_name="SL-mk2", device=device)
+    trainer = TrainTracker_SL(params, model_path=model_path, epochs=60, epoch_checkpoint=1, evaluate_performance_=True, experiment_name="SL-visualize2", device=device)
     trainer.load_checkpoint()
-    trainer.train(dataset["train"])
+    trainer.train(dataset["train"], dataset["val"])
     """
-    start_from = latest_checkpoint(params.checkpoints_path / "RL-XL")
-    #start_from = model_path
 
-    trainer = TrainTracker_RL(params, model_path=start_from, epochs=100, epoch_checkpoint=1, experiment_name="SLRL+RL_fc6_f", device=device, single_layer=True, reset_fc6=True)
+    #start_from = latest_checkpoint(params.checkpoints_path / "SL-XL")
+    #start_from = latest_checkpoint(params.checkpoints_path / "RL-XL")
+    start_from = model_path
+
+    trainer = TrainTracker_RL(params, model_path=start_from, epochs=200, epoch_checkpoint=1, experiment_name="SLRL_visualize", device=device, single_layer=False, reset_fc6=False)
     trainer.load_checkpoint()
     trainer.train(dataset["train"])
 

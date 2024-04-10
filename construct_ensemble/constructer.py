@@ -1,5 +1,5 @@
-from visualize import visualize_population, visualize_ensemble, visualize_pareto_front
-from utils import get_solutoins, load_solutions, save_ensemble, get_reference_solution, compute_distance, get_optimal_solution
+from .visualize import visualize_population, visualize_ensemble, visualize_pareto_front
+from .utils import get_solutoins, load_solutions, save_ensemble, get_reference_solution, compute_distance, get_optimal_solution
 
 def construct_ensamble(solutions, k):
     ref_key, ref_solution = get_reference_solution(solutions) # The reference solution is the best performing solution
@@ -43,11 +43,12 @@ def generate_ensemble(root_dir, dst, generation_st, generation_end, k):
     solution_paths = get_solutoins(root_dir, generation_st, generation_end)
     solutions = load_solutions(solution_paths)
     ensemble = construct_ensamble(solutions, k)
-    visualize_population(solutions)
-    visualize_ensemble(solutions, ensemble)
-    #save_ensemble(ensemble, dst)
+    #visualize_population(solutions)
+    #visualize_ensemble(solutions, ensemble)
+    save_ensemble(ensemble, dst)
 
 
+"""
 # Testing
 if __name__ == "__main__":
     src_path = "./test_populations/"
@@ -57,3 +58,4 @@ if __name__ == "__main__":
     k = 10
 
     generate_ensemble(src_path, dst_path, generation_st, generation_end, k)
+"""

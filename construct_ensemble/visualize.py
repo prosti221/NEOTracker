@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import MDS
-from utils import compute_distance
+from .utils import compute_distance
 
 def visualize_pareto_front(candidate_solutions, optimal_solutions, iteration):
     """

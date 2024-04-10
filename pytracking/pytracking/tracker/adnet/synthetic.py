@@ -139,7 +139,7 @@ class DummySequence(VOTSequence):
         groundtruth = []
 
         # Set initial position and velocity
-        speed = 60
+        speed = 30
         x = background_color.size[0] // 2
         y = background_color.size[1] // 2
         update_x = update_y = 0

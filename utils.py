@@ -487,7 +487,7 @@ def train_ne(
         dataset_train, 
         population_size, 
         n_generations, 
-        algorithm="FIXED", 
+        reward_version="MATLAB", 
         experiment_name="NE", 
         dataset_eval=None, 
         device="cpu", 
@@ -500,14 +500,13 @@ def train_ne(
     
     trainer = TrainTracker_NE(
         params, 
-        algorithm=algorithm,
         model_path=start_from, 
         population_size=population_size,
         n_generations=n_generations,
         maxpool_size=1, 
         experiment_name=experiment_name,
         device=device, 
-        reward_version="MATLAB", 
+        reward_version=reward_version, 
         #reward_version="PAPER", 
         resume_from_checkpoint=resume,
         checkpoint_paths=checkpoints

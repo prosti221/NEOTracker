@@ -4,7 +4,8 @@ import re
 from tqdm import tqdm
 import torch
 import numpy as np
-from pareto import compute_pareto
+from .pareto import compute_pareto
+from .cka import linear_CKA, kernel_CKA
 
 def get_solutoins(root_dir, generation_st, generation_end):
     """
@@ -22,7 +23,7 @@ def get_solutoins(root_dir, generation_st, generation_end):
 
     solution_paths = []
     subfolders = os.listdir(root_dir)
-    #subfolders.sort(key=lambda x: int(re.findall(r"\d+", x)[0]))
+    subfolders.sort(key=lambda x: int(re.findall(r"\d+", x)[0]))
     for i, subfolder in enumerate(tqdm(subfolders, desc="fetching genomes from populations")):
         if i >= generation_st and i <= generation_end:
             print(f"Fetching genomes from {subfolder}")
@@ -69,7 +70,8 @@ def load_solutions(solution_paths):
     Output:
         Dictionary of solutions with the index as the key and the solution weight matrix as the value
     """
-    fitness_scalar = lambda x: ((x + 1) / 2) * 100
+    #fitness_scalar = lambda x: ((x + 1) / 2) * 100
+    fitness_scalar = lambda x: x
     solutions = {}
     for solution_path in solution_paths:
         layer = torch.load(solution_path, map_location=torch.device('cpu'))
@@ -103,8 +105,12 @@ def compute_distance(mat1, mat2, metric="L1"):
         return ((mat1 - mat2)**2).mean().item()
     elif metric == "dot-product":
         d = np.dot(mat1.flatten(), mat2.flatten())
-        #d /= (np.linalg.norm(mat1) * np.linalg.norm(mat2))
+        d /= (np.linalg.norm(mat1) * np.linalg.norm(mat2))
         return d
+    elif metric == "Linear CKA":
+        return linear_CKA(mat1, mat2)
+    elif metric == "Kernel CKA":
+        return kernel_CKA(mat1, mat2)
     else:
         raise ValueError("Invalid metric")
 

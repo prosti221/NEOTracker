@@ -235,7 +235,6 @@ class ADNetEnsemble(nn.Module):
             cl_out = classifier(out)
             cl_out *= self.classifier_rankings[i]
             output_list.append(cl_out)
-
         out1 = torch.stack(output_list, dim=1)
         # Soft voting (taking the mean of all softmax outputs)
         if majority_vote_type == "soft":

@@ -7,6 +7,7 @@ import colorama
 from tqdm import tqdm
 import os
 import time
+import wandb
 os.environ["CUDA_VISIBLE_DEVICES"] = "0, 4, 5"
 
 class TrainTracker_SL(TrackerTrainer):
@@ -30,6 +31,9 @@ class TrainTracker_SL(TrackerTrainer):
 
     def train_epoch(self, train_db, test_db):
         db_idx = np.random.permutation(len(train_db))  # Shuffle sequences
+        num_actions = 0
+        num_correct_actions = 0
+        total_epoch_loss = 0 
         for i, seq_idx in enumerate(tqdm(db_idx)):
             seq = train_db[int(seq_idx)]
             #for pos_data, neg_data in SequenceDataset(seq, self.params):
@@ -62,6 +66,11 @@ class TrainTracker_SL(TrackerTrainer):
                 loss1.backward()
                 self.optimizer.step()
 
+                # Log acc to wandb 
+                #num_correct_actions += (out_actions.argmax(dim=1) == pos_actions).sum().item()
+                total_epoch_loss += loss1.item()
+                num_actions += len(pos_actions)
+
                 action_history_oh_zero = torch.tensor(0.0).expand(neg_patches.size(0), self.model.action_history_size).to(self.device)
 
                 # Optimize for negative samples
@@ -74,12 +83,19 @@ class TrainTracker_SL(TrackerTrainer):
                     self.optimizer.step()
                 except RuntimeError:
                     print("RuntimeError")
+                    wandb.log({"loss" : loss1.item()})
                     self.stats['total_epoch_loss'] += loss1.item()
                     continue
 
                 self.stats['total_epoch_loss'] += loss1.item() + loss2.item()
+        
+        epoch_loss = total_epoch_loss / num_actions
+        #accuracy = num_correct_actions / num_actions
+        #wandb.log({"loss" : epoch_loss, "accuracy": accuracy})
+        wandb.log({"loss" : epoch_loss})
 
     def evaluate_performance(self, train_db, test_db=None):
+        train_db = train_db[:50]
         st_time = time.time()
         train_acc = classification_accuracy(self.model, train_db, self.device, self.params)
         end_time = time.time()
@@ -92,6 +108,8 @@ class TrainTracker_SL(TrackerTrainer):
             end_time = time.time()
             print(f"Time to evaluate eval accuracy: {end_time - st_time}")
             self.stats['test_acc'] = test_acc
+
+        wandb.log({"train_accuracy" : train_acc[0], "validation_accuracy" : test_acc[0]})
 
     def print_stats(self):
         # super().print_stats()

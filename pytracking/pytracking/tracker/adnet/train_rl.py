@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import colorama
+import wandb
 from tqdm import tqdm
 
 
@@ -139,6 +140,7 @@ class TrainTracker_RL(TrackerTrainer):
         self.model.train()
 
         total_epoch_reward = 0
+        total_epoch_loss = 0
 
         #db_idx = np.random.permutation(len(train_db))  # Shuffle sequences
         #db_idx = np.random.permutation(30)  # Shuffle sequences
@@ -208,9 +210,12 @@ class TrainTracker_RL(TrackerTrainer):
 
             batch_reward = sum(batch_rewards) / len(batch_rewards)
             total_epoch_reward += batch_reward
+            total_epoch_loss += loss.item()
             self.stats['rewards'].append(batch_reward)
             self.stats['total_epoch_loss'] += loss.item()
+
         self.stats['avg_epoch_reward'].append(total_epoch_reward / len(train_db))
+        wandb.log({"Reward": total_epoch_reward / len(train_db), "Loss": -(total_epoch_loss / len(train_db))})
 
     def evaluate_performance(self, train_db, test_db):
         pass

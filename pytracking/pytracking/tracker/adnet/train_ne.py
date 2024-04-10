@@ -24,17 +24,29 @@ from PIL import Image
 import os
 import rerun as rr
 from evaluation import Tracker
-import torch.utils.tensorboard as tb
+#import torch.utils.tensorboard as tb
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-# Tensorboard for plots
-writer = tb.SummaryWriter("./runs/")
-
 # Rerun for tracking evaluation runs
-rr.init("Training NE")
-rr.save("rerun.rrd")
+#rr.init("Training NE")
+#rr.save("rerun.rrd")
 #rr.spawn()
+
+# WandDB stuff
+import wandb
+"""
+wandb.init(
+    # set the wandb project where this run will be logged
+    project="experiments",
+    group="SLNE_f",
+    job_type="train",
+    name="SLNE_f-run1",
+    config={
+        "Number of samples": 97
+    }
+)
+"""
 
 class ModelWrapper(nn.Module):
     def __init__(self, backbone, fc4_5, action_history_size=10, maxpool_size=1):
@@ -93,7 +105,7 @@ class DatasetIncrementer:
 
 class TrainTracker_NE(TrackerTrainer):
 
-    def __init__(self, params, reward_version="RETURNS", algorithm="NEAT", population_size=30, n_generations=100, maxpool_size=1, checkpoint_paths=[], resume_from_checkpoint=False, batch_size=1, **kwargs):
+    def __init__(self, params, reward_version="ALL_OVERLAPS", population_size=30, n_generations=100, maxpool_size=1, checkpoint_paths=[], resume_from_checkpoint=False, batch_size=1, **kwargs):
         super().__init__(params, **kwargs)
         # We are now only interested in the backbone of the model as well as the fc4_5 layer
         # x -> out = model.backbone(x) -> out = out.reshape(out.size(0), -1) -> out = model.fc4_5(out)
@@ -105,15 +117,12 @@ class TrainTracker_NE(TrackerTrainer):
         self.stats['max_epoch_reward'] = []
         self.stats['avg_epoch_reward'] = []
 
-
         self.population_size = population_size
         self.n_generations = n_generations
         self.action_history_size = self.model.action_history_size
         self.maxpool_size = maxpool_size
 
         self.resume_from_checkpoint = resume_from_checkpoint
-
-        self.algorithm = algorithm
 
         self.fc6 = self.model.fc6 # Includes the ReLU layer
         # Print the shape of the weights of the fc6 layer
@@ -302,9 +311,10 @@ class TrainTracker_NE(TrackerTrainer):
         # This is so that we take the genome that generalizes the best as the model that we save for the current checkpoint
         # Necessary when we use batch_size = 1 because of the high instability.
         #self.eval_db = [eval_db[1], train_db[0], train_db[21], train_db[38], train_db[42], train_db[33]] + train_db[-9:]
-        self.eval_db = [eval_db[1]] + train_db[:8]
+        #self.eval_db = [eval_db[1]] + train_db[:8]
         #self.eval_db = [eval_db[1]]+[train_db[0]]
         #self.eval_db = [train_db[0]]
+        self.eval_db = train_db[:27]
 
         # Keep track of the average fitness of the population for each generation per sample
         # sample_progress[(sample_idx, sample_name)] = [avg_fitness_gen0, avg_fitness_gen1, ...]
@@ -314,22 +324,22 @@ class TrainTracker_NE(TrackerTrainer):
         # Declare the problem
 
         ### Single layer network
-        #policy = (
-        #    """
-        #    Linear(622, 11)
-        #    >> Softmax(dim=1)
-        #    """
-        #)
-        #
-        ## Two layer network
         policy = (
             """
-            Linear(622, 512)
-            >> ReLU()
-            >> Linear(512, 11)
+            Linear(622, 11)
             >> Softmax(dim=1)
             """
         )
+        
+        ### Two layer network
+        #policy = (
+        #    """
+        #    Linear(622, 512)
+        #    >> ReLU()
+        #    >> Linear(512, 11)
+        #    >> Softmax(dim=1)
+        #    """
+        #)
         problem = NEProblem(
             #objective_sense=["max", "max"],
             objective_sense="max",
@@ -341,8 +351,8 @@ class TrainTracker_NE(TrackerTrainer):
         )
 
         operators=[
-            #OnePointCrossOver(problem, tournament_size=16, cross_over_rate=0.6), #cross_over_rate=0.6
-            OnePointCrossOver(problem, tournament_size=4, cross_over_rate=0.6),
+            OnePointCrossOver(problem, tournament_size=8, cross_over_rate=0.6), #cross_over_rate=0.6
+            #OnePointCrossOver(problem, tournament_size=4, cross_over_rate=0.6),
             GaussianMutation(problem, stdev=0.1, mutation_probability=0.4)  #0.03 stdev, 0.4 prob
         ]
 
@@ -359,7 +369,7 @@ class TrainTracker_NE(TrackerTrainer):
             problem,
             popsize=self.population_size,
             tournament_size=4,
-            mutation_stdev=0.2,
+            mutation_stdev=0.2, #0.2
             mutation_probability=0.4,
             elitism_ratio=0.75, 
             #permute_all=True
@@ -367,9 +377,11 @@ class TrainTracker_NE(TrackerTrainer):
         )
 
         self.dataset_incrementer = DatasetIncrementer.remote(len(self.train_db), self.batch_size, repeat_for=1)
+        # Best so far fine-tuning: mut: 1.0, stdev: 0.8
+        # Best so far random-init: mut: 2.0, stdev: 0.8
 
         # Transfer FC6 weights from pre-trained model
-        #searcher = self.initialize_population(searcher, problem, self.fc6, stdev=0.001)
+        searcher = self.initialize_population(searcher, problem, self.fc6, stdev=0.7) #0.8
         #self.visualize_population(searcher)
 
         # Initialize a standard output logger, and a pandas logger
@@ -378,19 +390,22 @@ class TrainTracker_NE(TrackerTrainer):
 
 
         reward_rescaler = lambda x: ((x + 1) / 2) * 100
-        #reward_rescaler = lambda x: x
+        #reward_rescaler = lambda x: x * 100
 
         # Run evolution for the specified amount of generations
         c = 0
         previous_best_eval = 0 
         previous_best = None
+        SAVE_STEP = 45
         for i in range(self.n_generations):
             # Perform an evolution step
             """
             if i == 0:
                 # Save the best population member
-                best_model = self.get_best_genome(searcher._population, self.eval_db, problem, frames_per_sequennce=30)
-                self.save_model(best_model, i)
+                #best_model = self.get_best_genome(searcher._population, self.eval_db, problem, frames_per_sequennce=80)
+                #self.save_model(best_model, i)
+                rankings = self.get_best_genome(searcher._population, self.eval_db, problem, frames_per_sequennce=80, return_rankings=True)
+                self.save_top_n_population(rankings, top_n=200, step=i)
 
                 self.evaluate(self.train_db[0], i, mode="train")
                 if self.eval_db is not None:
@@ -409,17 +424,17 @@ class TrainTracker_NE(TrackerTrainer):
             self.maxes.append(reward_rescaler(searcher.status["pop_best_eval"]))
 
             # Log the average and max fitness of the population on rerun
-            self.log_time_series("Population avg", reward_rescaler(searcher.status["mean_eval"]), i)
-            self.log_time_series("Population max", reward_rescaler(searcher.status["pop_best_eval"]), i)
-            self.visualize_population(searcher)
+            #self.log_time_series("Population avg", reward_rescaler(searcher.status["mean_eval"]), i)
+            #self.log_time_series("Population max", reward_rescaler(searcher.status["pop_best_eval"]), i)
+            #self.visualize_population(searcher)
 
-            # Log the average fitness of the population on tensorboard
-            writer.add_scalars("Population statistics",
+            # Log the average fitness of the population in Wandb
+            wandb.log(
                 {"avg" : reward_rescaler(searcher.status["mean_eval"]), 
                  "max" : reward_rescaler(searcher.status["pop_best_eval"])
-                }, i)
-
-            if c * self.batch_size >= (len(self.train_db)) * 2: 
+                })
+            
+            if i >= SAVE_STEP and i % SAVE_STEP == 0:
                 # Save the best population member
                 rankings = self.get_best_genome(searcher._population, self.eval_db, problem, frames_per_sequennce=80, return_rankings=True)
                 best_model = rankings[0][0]
@@ -428,31 +443,45 @@ class TrainTracker_NE(TrackerTrainer):
                 # Save the best n FC6 layers of the population as pytorch models
                 self.save_top_n_population(rankings, top_n=200, step=i)
 
+            if c * self.batch_size >= (len(self.train_db)) * 2: 
+                """
+                # Save the best population member
+                rankings = self.get_best_genome(searcher._population, self.eval_db, problem, frames_per_sequennce=80, return_rankings=True)
+                best_model = rankings[0][0]
+                self.save_model(best_model, i)
+
+                # Save the best n FC6 layers of the population as pytorch models
+                self.save_top_n_population(rankings, top_n=200, step=i)
+                """
+
                 self.end_of_dataset_stats["avg"].append(np.mean(self.avgs))
                 self.end_of_dataset_stats["max"].append(np.mean(self.maxes))
                 self.avgs = []; self.maxes = []
 
                 # Log the dataset iteration average and max fitness of the population on rerun
-                self.log_time_series("Dataset iteration avg", self.end_of_dataset_stats["avg"][-1], i)
-                self.log_time_series("Dataset iteration max_avg", self.end_of_dataset_stats["max"][-1], i)
+                #self.log_time_series("Dataset iteration avg", self.end_of_dataset_stats["avg"][-1], i)
+                #self.log_time_series("Dataset iteration max_avg", self.end_of_dataset_stats["max"][-1], i)
 
-                # Log the dataset iteration average and max fitness of the population on tensorboard
-                writer.add_scalars("Dataset iteration statistics", 
+                # Log the dataset iteration average and max fitness of the population in Wandb 
+                """
+                wandb.log( 
                     {"avg" : self.end_of_dataset_stats["avg"][-1], 
                      "max" : self.end_of_dataset_stats["max"][-1]
-                    }, i)
+                    })
+                """
 
                 print("End of dataset stats:")
                 print(f"Average: {self.end_of_dataset_stats['avg'][-1]}")
                 print(f"Max: {self.end_of_dataset_stats['max'][-1]}\n")
 
-                self.evaluate(self.train_db[0], i, mode="train")
-                if self.eval_db is not None:
-                    self.evaluate(self.eval_db[0], i, mode="eval")
+                #self.evaluate(self.train_db[0], i, mode="train")
+                #if self.eval_db is not None:
+                #    self.evaluate(self.eval_db[0], i, mode="eval")
                 c = 0
             c += 1
 
-        writer.close()
+        #writer.close()
+        wandb.finish()
 
 
     def save_model(self, fc6, num):
@@ -575,7 +604,8 @@ class TrainTracker_NE(TrackerTrainer):
                                                                                     
                         curr_bbox = next_bbox                                          
                                                                                     
-                    sim_weights = self.calc_weights(sim_overlaps, version=self.stats['reward_version'])
+                    #sim_weights = self.calc_weights(sim_overlaps, version=self.stats['reward_version'])
+                    sim_weights = self.calc_weights(sim_overlaps, version="ALL_OVERLAPS")
                     batch_weights.append(sim_weights)                                  
                                                                                     
                 batch_weights = torch.cat(batch_weights).to(self.device)               
@@ -583,7 +613,7 @@ class TrainTracker_NE(TrackerTrainer):
                 total_epoch_weights += torch.mean(batch_weights)                       
                                                                                     
             total_epoch_weights = (total_epoch_weights / len(db_idx)).item()
-            #print(f"Evaluated genome {i} with fitness: {total_epoch_weights}")
+            print(f"Evaluated genome {i} with fitness: {total_epoch_weights}")
             genome_rankings.append((genome, total_epoch_weights))
         
         genome_rankings = sorted(genome_rankings, key=lambda x: x[1], reverse=True)
