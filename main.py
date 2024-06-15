@@ -4,7 +4,6 @@ sys.path.append("pytracking")
 sys.path.append("pytracking/pytracking")
 sys.path.append("pytracking/ltr")
 from pathlib import Path
-import torch
 import matplotlib.pyplot as plt
 
 from pytracking.evaluation import Tracker
@@ -60,56 +59,62 @@ def run(config):
 
     mode = config["train_mode"]
     stats = None
-    if mode == "NE":
-        # If initial model path is a directory, get the latest checkpoint. Otherwise, use the provided path
-        # If it doesnt exist, raise an error
-        initial_model_path = checkpoint_path(config["train_ne"]["initial_model_path"])
-        checkpoints_root_path = Path(config["train_ne"]["checkpoints"])
-        checkpoints = get_all_checkpoints(checkpoints_root_path)[:config["train_ne"]["checkpoint_num"]]
+    match mode:
+        case "NE":
+            # If initial model path is a directory, get the latest checkpoint. Otherwise, use the provided path
+            # If it doesn't exist, raise an error
+            initial_model_path = checkpoint_path(config["train_ne"]["initial_model_path"])
+            checkpoints_root_path = Path(config["train_ne"]["checkpoints"])
+            checkpoints = get_all_checkpoints(checkpoints_root_path)[:config["train_ne"]["checkpoint_num"]]
             
-        stats = train_ne(
-            device=config["device"],
-            initial_model_path=initial_model_path,
-            params=params,
-            dataset_train=dataset["train"],
-            population_size=config["train_ne"]["population_size"],
-            n_generations=config["train_ne"]["n_generations"],
-            algorithm=config["train_ne"]["algorithm"],
-            experiment_name=config["train_ne"]["experiment_name"],
-            checkpoints=checkpoints,
-            resume=config["train_ne"]["resume"]
-        )
-    elif mode == "SL":
-        initial_model_path = checkpoint_path(config["train_sl"]["initial_model_path"])
-        stats = train_sl(
-            device=config["device"],
-            initial_model_path=initial_model_path,
-            params=params,
-            dataset_train=dataset["train"],
-            dataset_val=dataset["val"],
-            epochs=config["train_sl"]["epochs"],
-            epoch_checkpoint=config["train_sl"]["epoch_checkpoint"],
-            evaluate_performance_=config["train_sl"]["evaluate_performance_"],
-            experiment_name=config["train_sl"]["experiment_name"]
-        )
-    elif mode == "RL":
-        initial_model_path = checkpoint_path(config["train_rl"]["initial_model_path"])
-        stats = train_rl(
-            device=config["device"],
-            initial_model_path=initial_model_path,
-            params=params,
-            dataset_train=dataset["train"],
-            dataset_val=dataset["val"],
-            epochs=config["train_rl"]["epochs"],
-            epoch_checkpoint=config["train_rl"]["epoch_checkpoint"],
-            evaluate_performance_=config["train_rl"]["evaluate_performance_"],
-            experiment_name=config["train_rl"]["experiment_name"],
-            single_layer=config["train_rl"]["single_layer"],
-            reset_fc6=config["train_rl"]["reset_fc6"]
-        )
-    else:
-        raise ValueError("Invalid train mode: {}".format(mode))
-    
+            stats = train_ne(
+                device=config["device"],
+                initial_model_path=initial_model_path,
+                params=params,
+                dataset_train=dataset["train"],
+                population_size=config["train_ne"]["population_size"],
+                n_generations=config["train_ne"]["n_generations"],
+                algorithm=config["train_ne"]["algorithm"],
+                experiment_name=config["train_ne"]["experiment_name"],
+                checkpoints=checkpoints,
+                resume=config["train_ne"]["resume"]
+            )
+
+        case "SL":
+            initial_model_path = checkpoint_path(config["train_sl"]["initial_model_path"])
+            
+            stats = train_sl(
+                device=config["device"],
+                initial_model_path=initial_model_path,
+                params=params,
+                dataset_train=dataset["train"],
+                dataset_val=dataset["val"],
+                epochs=config["train_sl"]["epochs"],
+                epoch_checkpoint=config["train_sl"]["epoch_checkpoint"],
+                evaluate_performance_=config["train_sl"]["evaluate_performance_"],
+                experiment_name=config["train_sl"]["experiment_name"]
+            )
+
+        case "RL":
+            initial_model_path = checkpoint_path(config["train_rl"]["initial_model_path"])
+            
+            stats = train_rl(
+                device=config["device"],
+                initial_model_path=initial_model_path,
+                params=params,
+                dataset_train=dataset["train"],
+                dataset_val=dataset["val"],
+                epochs=config["train_rl"]["epochs"],
+                epoch_checkpoint=config["train_rl"]["epoch_checkpoint"],
+                evaluate_performance_=config["train_rl"]["evaluate_performance_"],
+                experiment_name=config["train_rl"]["experiment_name"],
+                single_layer=config["train_rl"]["single_layer"],
+                reset_fc6=config["train_rl"]["reset_fc6"]
+            )
+
+        case _:
+            raise ValueError(f"Invalid train mode: {mode}")
+
     return stats
 
 if __name__ == '__main__':
@@ -132,23 +137,3 @@ if __name__ == '__main__':
     rl_plot(stats['max_epoch_reward'], ax, label="max reward per gen")
     ax.legend()
     plt.show()
-
-    """
-    p_target_ne = params.checkpoints_path / "NE" / "genome_checkpoint_best_torch.pth"
-    # Check if file exists
-    if not p_target_ne.exists():
-        raise FileNotFoundError("File {} not found".format(p_target_ne))
-    p_target_rl = latest_checkpoint(params.checkpoints_path / "RL-dummy2")
-
-    N_RUNS = 30
-    force = True
-    trackers = []
-    debug = 0
-
-    trackers.extend(evaluate_tracker(dummy_dataset, p_target_rl, "SLRL", N_RUNS, display_name="$SLRL$", force=force, threads=0, debug=debug))
-    trackers.extend(evaluate_tracker(dummy_dataset, p_target_ne, "NE", N_RUNS, display_name="$NE$", force=force, threads=0, debug=debug))
-
-    plot_results(trackers, dummy_dataset, "NE vs SLRL - dummy dataset", merge_results=True, plot_types=('success', 'prec', 'norm_prec'), force_evaluation=True, skip_missing_seq=True)
-    eval_data = print_results(trackers, dummy_dataset, "NE vs SLRL - dummy dataset", merge_results=True, plot_types=('success', 'prec', 'norm_prec'), force_evaluation=True, skip_missing_seq=True)
-    print_per_sequence_results(trackers[::-1], dummy_dataset,"NE vs SLRL - dummy dataset",  merge_results=True, force_evaluation=True, skip_missing_seq=True)
-    """

@@ -1,3 +1,4 @@
+# This file is only used for testing purposes. Much sphagetti code :)
 import sys
 import time
 import argparse
