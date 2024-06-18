@@ -7,7 +7,11 @@ Visual object tracking - keeping track of objects throughout video sequences - i
 In this project, the controller networks, responsible for sampling actions to move the bounding box, are the components being evolved through neuroevolution. These controller networks receive features from pre-trained backbone networks, which were trained using supervised learning and reinforcement learning. This compromise of using pre-trained backbones is necessary due to the substantial computational resources required for training the entire architecture end-to-end with neuroevolution, making it infeasible with the hardware that was used to train these models.
 
 
-https://github.com/prosti221/NEOTracker/assets/58991997/566e81a2-50c5-4782-a9b6-e3f3611dd896
+
+https://github.com/prosti221/NEOTracker/assets/58991997/5cdaaaf4-e00f-460f-ab8e-8c79c681bb8f
+
+
+
 
 
 ## Key Features
