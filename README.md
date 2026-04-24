@@ -51,4 +51,4 @@ While ensembling did not improve performance in these experiments, the project i
 ![OTB Precision Plot](otb_precision_plot.png)
 
 ### Thesis
-https://www.duo.uio.no/handle/10852/112577
+https://nva.sikt.no/registration/019c913be6fd-5a6b236e-e0d0-49c7-8eb0-ec1d6ad2871f
